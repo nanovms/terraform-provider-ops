@@ -18,6 +18,7 @@ resource "ops_images" "walk_server_image" {
 ## Requirements
 
 * [OPS](https://github.com/nanovms/ops)
+* [Terraform](https://www.terraform.io/downloads.html)
 
 ## Build
 
