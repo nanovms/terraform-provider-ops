@@ -2,7 +2,7 @@ terraform {
   required_providers {
     ops = {
       version = "0.1"
-      source  = "hashicorp.com/ops/ops"
+      source  = "hashicorp.com/nanovms/ops"
     }
   }
 }
