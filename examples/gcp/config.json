@@ -1,0 +1,9 @@
+{
+  "CloudConfig": {
+    "ProjectID": "prod-1033",
+    "Zone": "us-west2-a",
+    "BucketName": "nanos-test"
+  },
+  "RunConfig": {
+  }
+}
