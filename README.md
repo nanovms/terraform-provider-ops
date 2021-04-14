@@ -17,7 +17,7 @@ resource "ops_images" "walk_server_image" {
 
 ## Requirements
 
-* (OPS)[https://github.com/nanovms/ops]
+* [OPS](https://github.com/nanovms/ops)
 
 ## Build
 
@@ -43,4 +43,4 @@ terraform init && terraform apply
 
 If you want to destroy the resources created run `terraform destroy`.
 
-Check our [examples](https://github.com/nanovms/terraform-provider-ops/examples).
+Check our [examples](https://github.com/nanovms/terraform-provider-ops/tree/master/examples).
