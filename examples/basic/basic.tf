@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    ops = {
-      version = "0.1"
-      source  = "hashicorp.com/nanovms/ops"
-    }
-  }
-}
-
 provider "ops" {
 
 }
