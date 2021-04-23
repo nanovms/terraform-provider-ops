@@ -2,10 +2,12 @@ package ops
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -15,40 +17,11 @@ import (
 	"github.com/nanovms/ops/types"
 )
 
-func resourceImage() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceImageCreate,
-		ReadContext:   resourceImageRead,
-		UpdateContext: resourceImageUpdate,
-		DeleteContext: resourceImageDelete,
-		Schema: map[string]*schema.Schema{
-			"path": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"elf": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"config": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"targetcloud": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-		},
-	}
+type imageSettings struct {
+	name, elfPath, configPath, providerType string
 }
 
-func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
+func newImageSettings(d *schema.ResourceData) *imageSettings {
 	elfPath := d.Get("elf").(string)
 	name := d.Get("name").(string)
 	configPath := d.Get("config").(string)
@@ -58,58 +31,122 @@ func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		providerType = "onprem"
 	}
 
-	if _, err := os.Stat(elfPath); os.IsNotExist(err) {
-		return diag.FromErr(fmt.Errorf("elf file with path %s not found", elfPath))
+	return &imageSettings{
+		elfPath,
+		name,
+		configPath,
+		providerType,
 	}
+}
 
-	opsCurrentVersion, _ := getCurrentVersion()
-	var config *types.Config
-	var err error
+func resourceImage() *schema.Resource {
 
-	if configPath != "" {
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			return diag.Errorf("config file with path %s not found", configPath)
-		}
+	return &schema.Resource{
+		CreateContext: resourceImageCreate,
+		ReadContext:   resourceImageRead,
+		DeleteContext: resourceImageDelete,
+		Schema: map[string]*schema.Schema{
+			"path": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"elf": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"elf_checksum": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"detect_elf_checksum": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "different elf checksum",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					elf := d.Get("elf")
+					currentChecksum := ""
+					if elf != nil {
+						currentChecksum, _ = getFileChecksum(elf.(string))
+					}
 
-		config, err = readConfigFromFile(configPath)
-		if err != nil {
-			return diag.Errorf("failed reading configuration: %v", err)
-		}
+					if currentChecksum == "" || currentChecksum != old {
+						return false
+					}
 
-	} else {
-		config = &types.Config{}
+					return true
+				},
+			},
+			"config": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"config_checksum": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"detect_config_checksum": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "different config checksum",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					elf := d.Get("config")
+					currentChecksum := ""
+					if elf != nil {
+						currentChecksum, _ = getFileChecksum(elf.(string))
+					}
+
+					if currentChecksum == "" || currentChecksum != old {
+						return false
+					}
+
+					return true
+				},
+			},
+			"targetcloud": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+		},
 	}
+}
 
-	config.Program = elfPath
-	config.RunConfig.Accel = true
-	config.RunConfig.Memory = "2G"
-	config.RunConfig.Imagename = path.Join(lepton.GetOpsHome(), "images", name+".img")
-	config.CloudConfig.ImageName = name
-	config.Kernel = path.Join(lepton.GetOpsHome(), opsCurrentVersion, "kernel.img")
-	config.Boot = path.Join(lepton.GetOpsHome(), opsCurrentVersion, "boot.img")
-	config.UefiBoot = lepton.GetUefiBoot(opsCurrentVersion)
+func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
 
-	provider, err := provider.CloudProvider(providerType, &config.CloudConfig)
+	settings := newImageSettings(d)
+
+	imagePath, err := buildImage(settings)
 	if err != nil {
-		return diag.Errorf("failed getting provider: %v", err)
-	}
-
-	opsContext := lepton.NewContext(config)
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Creating images resource",
-		Detail:   fmt.Sprintf("creating image %v", name),
-	})
-
-	imagePath, err := provider.BuildImage(opsContext)
-	if err != nil {
-		return diag.Errorf("failed creating image: %v", err)
+		return diag.FromErr(fmt.Errorf("failed building image: %v", err))
 	}
 
 	d.Set("path", imagePath)
 
-	d.SetId(imagePath)
+	elfChecksum, err := getFileChecksum(settings.elfPath)
+	if err != nil {
+		return diag.Errorf("failed generating checksum: %v", err)
+	}
+
+	d.Set("elf_checksum", elfChecksum)
+
+	configChecksum, err := getFileChecksum(settings.configPath)
+	if err != nil {
+		return diag.Errorf("failed generating checksum: %v", err)
+	}
+
+	d.Set("config_checksum", configChecksum)
+
+	d.SetId(settings.name)
 
 	return diags
 }
@@ -117,62 +154,21 @@ func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interfac
 func resourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	path := d.Get("path").(string)
+	elfChecksum := d.Get("elf_checksum").(string)
 
-	provider := onprem.OnPrem{}
-	opsContext := lepton.NewContext(&types.Config{})
+	d.Set("detect_elf_checksum", elfChecksum)
 
-	images, err := provider.GetImages(opsContext)
-	if err != nil {
-		return diag.Errorf("failed getting images: %v", err)
-	}
+	configChecksum := d.Get("config_checksum").(string)
 
-	var image *lepton.CloudImage
-
-	for _, i := range images {
-		if i.Path == path {
-			image = &i
-			break
-		}
-	}
-
-	if image != nil {
-		nameParts := strings.Split(image.Name, ".")
-		d.Set("name", nameParts[0])
-	}
+	d.Set("detect_config_checksum", configChecksum)
 
 	return diags
-}
-
-func resourceImageUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Updating images resource",
-		Detail:   fmt.Sprintf("Provider will update resource with images %v", d.Get("images")),
-	})
-
-	if d.HasChanges("elf", "config") {
-		createDiags := resourceImageCreate(ctx, d, m)
-
-		diags = append(diags, createDiags...)
-	}
-
-	return diags
-
 }
 
 func resourceImageDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	imageName := d.Get("name").(string) + ".img"
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Deleting images resource",
-		Detail:   fmt.Sprintf("Provider will delete image with name %s", imageName),
-	})
 
 	provider := onprem.OnPrem{}
 	opsContext := lepton.NewContext(&types.Config{})
@@ -182,5 +178,76 @@ func resourceImageDelete(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
+	d.SetId("")
+
 	return diags
+}
+
+func buildImage(settings *imageSettings) (imagePath string, err error) {
+	if _, err = os.Stat(settings.elfPath); os.IsNotExist(err) {
+		err = fmt.Errorf("elf file with path %s not found", settings.elfPath)
+		return
+	}
+
+	opsCurrentVersion, _ := getCurrentVersion()
+	var config *types.Config
+
+	if settings.configPath != "" {
+		if _, err = os.Stat(settings.configPath); os.IsNotExist(err) {
+			err = fmt.Errorf("config file with path %s not found", settings.configPath)
+			return
+		}
+
+		config, err = readConfigFromFile(settings.configPath)
+		if err != nil {
+			err = fmt.Errorf("failed reading configuration: %v", err)
+			return
+		}
+
+	} else {
+		config = &types.Config{}
+	}
+
+	config.Program = settings.elfPath
+	config.RunConfig.Accel = true
+	config.RunConfig.Memory = "2G"
+	config.RunConfig.Imagename = path.Join(lepton.GetOpsHome(), "images", settings.name+".img")
+	config.CloudConfig.ImageName = settings.name
+	config.Kernel = path.Join(lepton.GetOpsHome(), opsCurrentVersion, "kernel.img")
+	config.Boot = path.Join(lepton.GetOpsHome(), opsCurrentVersion, "boot.img")
+	config.UefiBoot = lepton.GetUefiBoot(opsCurrentVersion)
+
+	provider, err := provider.CloudProvider(settings.providerType, &config.CloudConfig)
+	if err != nil {
+		err = fmt.Errorf("failed getting provider: %v", err)
+		return
+	}
+
+	opsContext := lepton.NewContext(config)
+
+	imagePath, err = provider.BuildImage(opsContext)
+	if err != nil {
+		err = fmt.Errorf("failed creating image: %v", err)
+		return
+	}
+
+	return
+}
+
+func getFileChecksum(filePath string) (checksum string, err error) {
+	hasher := sha256.New()
+	f, err := os.Open(filePath)
+	if err != nil {
+		err = fmt.Errorf("failed reading image path: %v", err)
+		return
+	}
+	defer f.Close()
+	if _, err = io.Copy(hasher, f); err != nil {
+		err = fmt.Errorf("failed copying image content to hash: %v", err)
+		return
+	}
+
+	checksum = hex.EncodeToString(hasher.Sum(nil))
+
+	return
 }
