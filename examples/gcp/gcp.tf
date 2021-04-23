@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    ops = {
+      source = "nanovms/ops"
+    }
+  }
+}
+
+locals {
+  timestamp           = timestamp()
+  timestamp_sanitized = replace("${local.timestamp}", "/[- TZ:]/", "")
+}
+
 provider "google" {
   project = "prod-1033"
   region  = "us-west2"
@@ -41,7 +54,7 @@ resource "google_compute_image" "walk_server_image" {
 }
 
 resource "google_compute_instance" "walk_server_instance" {
-  name         = "walk-server"
+  name         = "walk-server-${local.timestamp_sanitized}"
   machine_type = "f1-micro"
 
   boot_disk {
@@ -62,6 +75,12 @@ resource "google_compute_instance" "walk_server_instance" {
     access_config {
     }
   }
+
+  allow_stopping_for_update = true
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_firewall" "walk_server_firewall" {
@@ -79,6 +98,15 @@ resource "google_compute_firewall" "walk_server_firewall" {
 output "image_path" {
   value = ops_images.walk_server_image.path
 }
+
+output "configchecksum" {
+  value = ops_images.walk_server_image.config_checksum
+}
+
+output "elfchecksum" {
+  value = ops_images.walk_server_image.elf_checksum
+}
+
 
 output "instance_ip" {
   value = google_compute_instance.walk_server_instance.network_interface[0].access_config[0].nat_ip
