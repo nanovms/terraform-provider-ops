@@ -335,8 +335,8 @@ github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mitchellh/reflectwalk v1.0.1 h1:FVzMWA5RllMAKIdUSC8mdWo3XtwoecrH79BY70sEEpE=
 github.com/mitchellh/reflectwalk v1.0.1/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
-github.com/nanovms/ops v0.0.0-20210414173300-882d741c6db5 h1:rUhArOEAvAGFlMMHJk8NraIXdo7SQs6vwxBUVG534lI=
-github.com/nanovms/ops v0.0.0-20210414173300-882d741c6db5/go.mod h1:97Azwmq1f3blvXWScCo74lPpS6LzW8byO4CKMQe0OJU=
+github.com/nanovms/ops v0.0.0-20210602145538-e02bee0b65b5 h1:ofVhVoB829Pc7aJbZzgbnhRnfOmQCcuZztKKKzFfRe0=
+github.com/nanovms/ops v0.0.0-20210602145538-e02bee0b65b5/go.mod h1:97Azwmq1f3blvXWScCo74lPpS6LzW8byO4CKMQe0OJU=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nsf/jsondiff v0.0.0-20200515183724-f29ed568f4ce h1:RPclfga2SEJmgMmz2k+Mg7cowZ8yv4Trqw9UsJby758=
