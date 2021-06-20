@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/nanovms/ops/lepton"
 	"github.com/nanovms/ops/types"
-	"github.com/nanovms/terraform-provider-ops/ops"
+	"github.com/nanovms/terraform-provider-ops/pkg/testutil"
 	"gotest.tools/assert"
 )
 
@@ -22,7 +22,7 @@ func TestImageFromPackage(t *testing.T) {
 	data.Set("package_name", "node_v14.2.0")
 	data.Set("arguments", []string{"hello.js"})
 
-	configPath := ops.WriteConfigFile(&types.Config{})
+	configPath := testutil.WriteConfigFile(&types.Config{})
 	defer os.Remove(configPath)
 	data.Set("config", configPath)
 

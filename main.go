@@ -11,8 +11,8 @@ func main() {
 		ProviderFunc: func() *schema.Provider {
 			return &schema.Provider{
 				ResourcesMap: map[string]*schema.Resource{
-					"ops_images":        image.ResourceImage(),
-					"ops_image_package": image.NewFromPackage(),
+					"ops_image_executable": image.NewFromExecutable(),
+					"ops_image_package":    image.NewFromPackage(),
 				},
 				DataSourcesMap: map[string]*schema.Resource{},
 			}

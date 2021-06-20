@@ -10,27 +10,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/nanovms/ops/lepton"
 	"github.com/nanovms/ops/types"
-	"github.com/nanovms/terraform-provider-ops/pkg/ops"
 	"github.com/nanovms/terraform-provider-ops/pkg/testutil"
 	"gotest.tools/assert"
 )
 
-func TestResourceImageCreate(t *testing.T) {
-	dataSource := ResourceImage()
+func TestExecCreateImage(t *testing.T) {
+	dataSource := NewFromExecutable()
 	instanceState := &terraform.InstanceState{}
 	data := dataSource.Data(instanceState)
 
 	elfPath := testutil.BuildBasicProgram()
 	defer os.Remove(elfPath)
 
-	configPath := ops.WriteConfigFile(&types.Config{})
+	configPath := testutil.WriteConfigFile(&types.Config{})
 	defer os.Remove(configPath)
 
 	data.Set("name", "lorem")
 	data.Set("elf", elfPath)
 	data.Set("config", configPath)
 
-	diags := resourceImageCreate(context.TODO(), data, nil)
+	diags := execCreateImage(context.TODO(), data, nil)
 
 	fmt.Println(diags)
 
@@ -41,14 +40,14 @@ func TestResourceImageCreate(t *testing.T) {
 	assert.Equal(t, imagePath, path.Join(lepton.GetOpsHome(), "images", "lorem.img"))
 }
 
-func TestResourceImageRead(t *testing.T) {
-	dataSource := ResourceImage()
+func TestExecReadImage(t *testing.T) {
+	dataSource := NewFromExecutable()
 	instanceState := &terraform.InstanceState{}
 	data := dataSource.Data(instanceState)
 
 	data.Set("path", "/home/xyz/.ops/images/lorem.img")
 
-	diags := resourceImageRead(context.TODO(), data, nil)
+	diags := execReadImage(context.TODO(), data, nil)
 
 	assert.Assert(t, !diags.HasError())
 }

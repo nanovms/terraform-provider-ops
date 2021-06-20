@@ -21,7 +21,7 @@ provider "ops" {
 
 }
 
-resource "ops_images" "walk_server_image" {
+resource "ops_image_executable" "walk_server_image" {
   name        = "walk-server"
   elf         = "./walk-server"
   config      = "./config.json"
@@ -36,7 +36,7 @@ resource "google_storage_bucket" "images_bucket" {
 
 resource "google_storage_bucket_object" "walk_server_raw_disk" {
   name   = "walk-server.tar.gz"
-  source = ops_images.walk_server_image.path
+  source = ops_image_executable.walk_server_image.path
   bucket = google_storage_bucket.images_bucket.name
 }
 
@@ -96,15 +96,15 @@ resource "google_compute_firewall" "walk_server_firewall" {
 }
 
 output "image_path" {
-  value = ops_images.walk_server_image.path
+  value = ops_image_executable.walk_server_image.path
 }
 
 output "configchecksum" {
-  value = ops_images.walk_server_image.config_checksum
+  value = ops_image_executable.walk_server_image.config_checksum
 }
 
 output "elfchecksum" {
-  value = ops_images.walk_server_image.elf_checksum
+  value = ops_image_executable.walk_server_image.elf_checksum
 }
 
 

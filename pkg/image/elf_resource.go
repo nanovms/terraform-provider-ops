@@ -16,11 +16,11 @@ import (
 	"github.com/nanovms/terraform-provider-ops/pkg/ops"
 )
 
-type imageSettings struct {
+type execImageSettings struct {
 	name, elfPath, configPath, providerType string
 }
 
-func newImageSettings(d *schema.ResourceData) *imageSettings {
+func newExecImageSettings(d *schema.ResourceData) *execImageSettings {
 	elfPath := d.Get("elf").(string)
 	name := d.Get("name").(string)
 	configPath := d.Get("config").(string)
@@ -30,7 +30,7 @@ func newImageSettings(d *schema.ResourceData) *imageSettings {
 		providerType = "onprem"
 	}
 
-	return &imageSettings{
+	return &execImageSettings{
 		elfPath,
 		name,
 		configPath,
@@ -38,12 +38,12 @@ func newImageSettings(d *schema.ResourceData) *imageSettings {
 	}
 }
 
-func ResourceImage() *schema.Resource {
+func NewFromExecutable() *schema.Resource {
 
 	return &schema.Resource{
-		CreateContext: resourceImageCreate,
-		ReadContext:   resourceImageRead,
-		DeleteContext: resourceImageDelete,
+		CreateContext: execCreateImage,
+		ReadContext:   execReadImage,
+		DeleteContext: execDeleteImage,
 		Schema: map[string]*schema.Schema{
 			"path": {
 				Type:     schema.TypeString,
@@ -119,12 +119,12 @@ func ResourceImage() *schema.Resource {
 	}
 }
 
-func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func execCreateImage(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	settings := newImageSettings(d)
+	settings := newExecImageSettings(d)
 
-	imagePath, err := buildImage(settings)
+	imagePath, err := execBuildImage(settings)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed building image: %v", err))
 	}
@@ -150,7 +150,7 @@ func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func resourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func execReadImage(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	elfChecksum := d.Get("elf_checksum").(string)
@@ -164,7 +164,7 @@ func resourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return diags
 }
 
-func resourceImageDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func execDeleteImage(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	imageName := d.Get("name").(string) + ".img"
@@ -182,7 +182,7 @@ func resourceImageDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func buildImage(settings *imageSettings) (imagePath string, err error) {
+func execBuildImage(settings *execImageSettings) (imagePath string, err error) {
 	if _, err = os.Stat(settings.elfPath); os.IsNotExist(err) {
 		err = fmt.Errorf("elf file with path %s not found", settings.elfPath)
 		return
