@@ -14,7 +14,7 @@ import (
 )
 
 func TestResourceImageCreate(t *testing.T) {
-	dataSource := resourceImage()
+	dataSource := ResourceImage()
 	instanceState := &terraform.InstanceState{}
 	data := dataSource.Data(instanceState)
 
@@ -40,7 +40,7 @@ func TestResourceImageCreate(t *testing.T) {
 }
 
 func TestResourceImageRead(t *testing.T) {
-	dataSource := resourceImage()
+	dataSource := ResourceImage()
 	instanceState := &terraform.InstanceState{}
 	data := dataSource.Data(instanceState)
 

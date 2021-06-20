@@ -2,10 +2,7 @@ package ops
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"path"
 
@@ -15,6 +12,7 @@ import (
 	"github.com/nanovms/ops/onprem"
 	"github.com/nanovms/ops/provider"
 	"github.com/nanovms/ops/types"
+	"github.com/nanovms/terraform-provider-ops/pkg/file"
 )
 
 type imageSettings struct {
@@ -39,7 +37,7 @@ func newImageSettings(d *schema.ResourceData) *imageSettings {
 	}
 }
 
-func resourceImage() *schema.Resource {
+func ResourceImage() *schema.Resource {
 
 	return &schema.Resource{
 		CreateContext: resourceImageCreate,
@@ -73,7 +71,7 @@ func resourceImage() *schema.Resource {
 					elf := d.Get("elf")
 					currentChecksum := ""
 					if elf != nil {
-						currentChecksum, _ = getFileChecksum(elf.(string))
+						currentChecksum, _ = file.Checksum(elf.(string))
 					}
 
 					if currentChecksum == "" || currentChecksum != old {
@@ -101,7 +99,7 @@ func resourceImage() *schema.Resource {
 					elf := d.Get("config")
 					currentChecksum := ""
 					if elf != nil {
-						currentChecksum, _ = getFileChecksum(elf.(string))
+						currentChecksum, _ = file.Checksum(elf.(string))
 					}
 
 					if currentChecksum == "" || currentChecksum != old {
@@ -132,14 +130,14 @@ func resourceImageCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	d.Set("path", imagePath)
 
-	elfChecksum, err := getFileChecksum(settings.elfPath)
+	elfChecksum, err := file.Checksum(settings.elfPath)
 	if err != nil {
 		return diag.Errorf("failed generating checksum: %v", err)
 	}
 
 	d.Set("elf_checksum", elfChecksum)
 
-	configChecksum, err := getFileChecksum(settings.configPath)
+	configChecksum, err := file.Checksum(settings.configPath)
 	if err != nil {
 		return diag.Errorf("failed generating checksum: %v", err)
 	}
@@ -189,7 +187,7 @@ func buildImage(settings *imageSettings) (imagePath string, err error) {
 		return
 	}
 
-	opsCurrentVersion, _ := getCurrentVersion()
+	opsCurrentVersion, _ := CurrentVersion()
 	var config *types.Config
 
 	if settings.configPath != "" {
@@ -198,7 +196,7 @@ func buildImage(settings *imageSettings) (imagePath string, err error) {
 			return
 		}
 
-		config, err = readConfigFromFile(settings.configPath)
+		config, err = ReadConfigFromFile(settings.configPath)
 		if err != nil {
 			err = fmt.Errorf("failed reading configuration: %v", err)
 			return
@@ -230,24 +228,6 @@ func buildImage(settings *imageSettings) (imagePath string, err error) {
 		err = fmt.Errorf("failed creating image: %v", err)
 		return
 	}
-
-	return
-}
-
-func getFileChecksum(filePath string) (checksum string, err error) {
-	hasher := sha256.New()
-	f, err := os.Open(filePath)
-	if err != nil {
-		err = fmt.Errorf("failed reading image path: %v", err)
-		return
-	}
-	defer f.Close()
-	if _, err = io.Copy(hasher, f); err != nil {
-		err = fmt.Errorf("failed copying image content to hash: %v", err)
-		return
-	}
-
-	checksum = hex.EncodeToString(hasher.Sum(nil))
 
 	return
 }

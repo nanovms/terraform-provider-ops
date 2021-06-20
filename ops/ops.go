@@ -11,7 +11,7 @@ import (
 	"github.com/nanovms/ops/types"
 )
 
-func getCurrentVersion() (string, error) {
+func CurrentVersion() (string, error) {
 	var err error
 
 	local, remote := lepton.LocalReleaseVersion, lepton.LatestReleaseVersion
@@ -26,7 +26,7 @@ func getCurrentVersion() (string, error) {
 	return local, nil
 }
 
-func readConfigFromFile(file string) (c *types.Config, err error) {
+func ReadConfigFromFile(file string) (c *types.Config, err error) {
 	c = &types.Config{}
 
 	data, err := ioutil.ReadFile(file)
