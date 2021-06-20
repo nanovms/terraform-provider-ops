@@ -1,4 +1,4 @@
-package ops
+package image
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/nanovms/ops/provider"
 	"github.com/nanovms/ops/types"
 	"github.com/nanovms/terraform-provider-ops/pkg/file"
+	"github.com/nanovms/terraform-provider-ops/pkg/ops"
 )
 
 type imageSettings struct {
@@ -187,7 +188,7 @@ func buildImage(settings *imageSettings) (imagePath string, err error) {
 		return
 	}
 
-	opsCurrentVersion, _ := CurrentVersion()
+	opsCurrentVersion, _ := ops.CurrentVersion()
 	var config *types.Config
 
 	if settings.configPath != "" {
@@ -196,7 +197,7 @@ func buildImage(settings *imageSettings) (imagePath string, err error) {
 			return
 		}
 
-		config, err = ReadConfigFromFile(settings.configPath)
+		config, err = ops.ReadConfigFromFile(settings.configPath)
 		if err != nil {
 			err = fmt.Errorf("failed reading configuration: %v", err)
 			return

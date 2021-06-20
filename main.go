@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/nanovms/terraform-provider-ops/ops"
 	"github.com/nanovms/terraform-provider-ops/pkg/image"
 )
 
@@ -12,7 +11,7 @@ func main() {
 		ProviderFunc: func() *schema.Provider {
 			return &schema.Provider{
 				ResourcesMap: map[string]*schema.Resource{
-					"ops_images":        ops.ResourceImage(),
+					"ops_images":        image.ResourceImage(),
 					"ops_image_package": image.NewFromPackage(),
 				},
 				DataSourcesMap: map[string]*schema.Resource{},

@@ -1,4 +1,4 @@
-package ops
+package image
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/nanovms/ops/lepton"
 	"github.com/nanovms/ops/types"
+	"github.com/nanovms/terraform-provider-ops/pkg/ops"
+	"github.com/nanovms/terraform-provider-ops/pkg/testutil"
 	"gotest.tools/assert"
 )
 
@@ -18,10 +20,10 @@ func TestResourceImageCreate(t *testing.T) {
 	instanceState := &terraform.InstanceState{}
 	data := dataSource.Data(instanceState)
 
-	elfPath := BuildBasicProgram()
+	elfPath := testutil.BuildBasicProgram()
 	defer os.Remove(elfPath)
 
-	configPath := WriteConfigFile(&types.Config{})
+	configPath := ops.WriteConfigFile(&types.Config{})
 	defer os.Remove(configPath)
 
 	data.Set("name", "lorem")

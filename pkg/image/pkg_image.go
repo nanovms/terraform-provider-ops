@@ -13,8 +13,8 @@ import (
 	"github.com/nanovms/ops/cmd"
 	"github.com/nanovms/ops/lepton"
 	"github.com/nanovms/ops/types"
-	"github.com/nanovms/terraform-provider-ops/ops"
 	"github.com/nanovms/terraform-provider-ops/pkg/file"
+	"github.com/nanovms/terraform-provider-ops/pkg/ops"
 	"github.com/spf13/pflag"
 )
 
