@@ -1,0 +1,5 @@
+```
+$ terraform init
+
+$ terraform apply
+```
